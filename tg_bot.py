@@ -1,14 +1,18 @@
-class User:
-    def __init__(self, user_id, name, age, email):
-        self.user_id = user_id
-        self.name = name
-        self.age = age
-        self.email = email
+import matplotlib.pyplot as plt
 
-def get_user_info(user: User) -> str:
-    return f'Возраст пользователя {user.name} - {user.age}, ' \
-           f'а email - {user.email}'
+# Данные для графика
+months = [0, 12, 24, 36, 48, 60]
+balance = [1000000, 850000, 680000, 490000, 280000, 0]
 
+# Создание графика
+plt.plot(months, balance, marker='o', color='b', label='Остаток долга')
 
-user_1 = User(42, 'Vasiliy', 23, 'vasya_pupkin@pochta.ru')
-print(get_user_info(user_1))
+# Настройка оформления
+plt.title('График погашения кредита')
+plt.xlabel('Месяцы')
+plt.ylabel('Сумма (₽)')
+plt.grid(True)
+plt.legend()
+
+# Отображение
+plt.show()
