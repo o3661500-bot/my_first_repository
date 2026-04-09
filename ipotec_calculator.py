@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 
-def mortgage_calculator(real_estate_value, down_payment, term_in_years, bid):
+def mortgage_calculator(real_estate_value, down_payment, term_in_years, bid, payment_type):
+
+    # payment_type: 1 - аннуитетный, 2 - дифференцированный
+
     while True:
         try:
             # Вычисление значений
@@ -10,69 +13,93 @@ def mortgage_calculator(real_estate_value, down_payment, term_in_years, bid):
 
             total_loan_term = term_in_years * 12    # Срок кредита в месяцах
 
-            total_rate = (1 + monthly_interest_rate) ** total_loan_term # Общая ставка
+            if payment_type == 1:
+                # Аннуитетный платёж
+                total_rate = (1 + monthly_interest_rate) ** total_loan_term
+                annuity_payment = mortgage_loan_amount * monthly_interest_rate * total_rate / (total_rate - 1)
+                overpayment = annuity_payment * total_loan_term - mortgage_loan_amount
+                first_payment = annuity_payment
+                last_payment = annuity_payment
+            elif payment_type == 2:
+                # Дифференцированный платёж
+                monthly_principal = mortgage_loan_amount / total_loan_term
+                # Первый платёж
+                first_payment = monthly_principal + mortgage_loan_amount * monthly_interest_rate
+                # Последний платёж
+                last_payment = monthly_principal + monthly_principal * monthly_interest_rate
+                # Переплата = сумма процентов (арифметическая прогрессия)
+                overpayment = monthly_interest_rate * mortgage_loan_amount * (total_loan_term + 1) / 2
+                annuity_payment = None  # для аннуитета не используется
+            else:
+                raise ValueError("Неверный тип платежа. Выберите 1 или 2.")
 
-            annuity_payment = mortgage_loan_amount * monthly_interest_rate * total_rate / (total_rate - 1)  # Ежемесячный платеж
-
-            overpayment = annuity_payment * total_loan_term - mortgage_loan_amount  # Переплата
-
-            # Вычет за покупку (13% от стоимости, но не более чем с 2 млн)
+            # Налоговый вычет за покупку
             limit_purchase = 2_000_000
             tax_refund_purchase = min(real_estate_value, limit_purchase) * 0.13
 
-            # Вычет за проценты по ипотеке (13% от переплаты, но не более чем с 3 млн)
+            # Вычет по процентам
             limit_interests = 3_000_000
             tax_refund_interests = min(overpayment, limit_interests) * 0.13
-
-            total_refund = tax_refund_purchase + tax_refund_interests   # Общая сумма возврата
-
-
+            total_refund = tax_refund_purchase + tax_refund_interests
 
             K = 3.33540331196581
-            print(f"Сумма кредита:{mortgage_loan_amount} ₽")
-            print(f"Ежемесячный платёж:{(annuity_payment):.0f} ₽")
-            print(f"Переплата по кредиту:{(overpayment):.0f} ₽")
-            print(f"Общая выплата:{(mortgage_loan_amount + overpayment):.0f} ₽")
-            print(f"Рекомендуемый доход:{(annuity_payment * K):.0f}")
+            print(f"Сумма кредита: {mortgage_loan_amount:.0f} ₽")
+            if payment_type == 1:
+                print(f"Ежемесячный платёж (аннуитет): {annuity_payment:.0f} ₽")
+                recommended_income = annuity_payment * K
+            else:
+                print(f"Первый платёж (дифференцированный): {first_payment:.0f} ₽")
+                print(f"Последний платёж (дифференцированный): {last_payment:.0f} ₽")
+                recommended_income = first_payment * K
+            print(f"Переплата по кредиту: {overpayment:.0f} ₽")
+            print(f"Общая выплата: {(mortgage_loan_amount + overpayment):.0f} ₽")
+            print(f"Рекомендуемый доход: {recommended_income:.0f} ₽")
             print("НАЛОГОВЫЙ ВЫЧЕТ (НДФЛ):")
             print(f"За покупку жилья: {tax_refund_purchase:.0f} ₽")
             print(f"За уплаченные проценты: {tax_refund_interests:.0f} ₽")
             print(f"Можно вернуть: {total_refund:.0f} ₽")
             print("\nНажмите клавишу Enter, чтобы продолжить")
-            return mortgage_loan_amount, total_loan_term, annuity_payment, monthly_interest_rate
 
-        except ValueError:
-            print("Ошибка: неверный тип данных, допускаются только числа.")
+            return mortgage_loan_amount, total_loan_term, annuity_payment if payment_type == 1 else first_payment, monthly_interest_rate, payment_type
+
+        except ValueError as e:
+            print(f"Ошибка: {e}")
         except ZeroDivisionError:
             print("Ошибка: срок кредита или ставка не могут быть нулевыми.")
         except NameError:
             pass
 
 
-def plot_debt_schedule(mortgage_loan_amount, total_loan_term):
-    plt.plot(mortgage_loan_amount, total_loan_term, marker='o', color='b', label='Остаток долга')
-
-    plt.title('График погашения кредита')
+def plot_debt_schedule(months, balances, payment_type):
+    plt.plot(months, balances, marker='o', markersize=2, linewidth=1.5, color='b', label='Остаток долга')
+    plt.title(f'График погашения кредита ({"аннуитет" if payment_type == 1 else "дифференцированный"})')
     plt.xlabel('Месяцы')
     plt.ylabel('Сумма (₽)')
     plt.grid(True)
     plt.legend()
-
     plt.show()
 
 
-def calculate_balance_schedule(loan_amount, monthly_rate, total_months):
+def calculate_balance_schedule(loan_amount, monthly_rate, total_months, payment_type):
     months = list(range(int(total_months) + 1))
     balances = []
 
-    for k in months:
-        if monthly_rate == 0:
+    if payment_type == 2:
+        # Дифференцированный способ платежа
+        for k in months:
             balance = loan_amount * (1 - k / total_months)
+            balances.append(balance)
+    else:
+        # Аннуитетный способ платежа
+        if monthly_rate == 0:
+            for k in months:
+                balance = loan_amount * (1 - k / total_months)
+                balances.append(balance)
         else:
-            # Формула остатка долга при аннуитете
             factor = (1 + monthly_rate) ** total_months
-            balance = loan_amount * (factor - (1 + monthly_rate) ** k) / (factor - 1)
-        balances.append(balance)
+            for k in months:
+                balance = loan_amount * (factor - (1 + monthly_rate) ** k) / (factor - 1)
+                balances.append(balance)
     return months, balances
 
 
@@ -81,12 +108,21 @@ if __name__ == "__main__":
     down_payment = float(input("Введите первоначальный взнос: "))
     term_in_years = float(input("Введите срок кредита в годах: "))
     bid = float(input("Введите годовую процентную ставку: "))
+    while True:
+        try:
+            payment_type = int(input("Выберите тип платежа (1 - аннуитетный, 2 - дифференцированный): "))
+            if payment_type in (1, 2):
+                break
+            else:
+                print("Введите 1 или 2.")
+        except ValueError:
+            print("Введите целое число 1 или 2.")
 
-    # Получаем все нужные данные из калькулятора
-    mortgage_loan_amount, total_loan_term, annuity_payment, monthly_interest_rate = mortgage_calculator(
-        real_estate_value, down_payment, term_in_years, bid
+    # Получение данных из калькулятора
+    mortgage_loan_amount, total_loan_term, _, monthly_interest_rate, payment_type = mortgage_calculator(
+        real_estate_value, down_payment, term_in_years, bid, payment_type
     )
 
-    # Строим правильный график остатка долга
-    months, balances = calculate_balance_schedule(mortgage_loan_amount, monthly_interest_rate, total_loan_term)
-    plot_debt_schedule(months, balances)
+    # Построение графика остатка долга
+    months, balances = calculate_balance_schedule(mortgage_loan_amount, monthly_interest_rate, total_loan_term, payment_type)
+    plot_debt_schedule(months, balances, payment_type)
