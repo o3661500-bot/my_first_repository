@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 def mortgage_calculator(real_estate_value, down_payment, term_in_years, bid, payment_type):
 
-    # payment_type: 1 - аннуитетный, 2 - дифференцированный
+    # тип платежа: 1 - аннуитетный, 2 - дифференцированный
 
     while True:
         try:
@@ -29,7 +29,7 @@ def mortgage_calculator(real_estate_value, down_payment, term_in_years, bid, pay
                 last_payment = monthly_principal + monthly_principal * monthly_interest_rate
                 # Переплата = сумма процентов (арифметическая прогрессия)
                 overpayment = monthly_interest_rate * mortgage_loan_amount * (total_loan_term + 1) / 2
-                annuity_payment = None  # для аннуитета не используется
+                annuity_payment = None
             else:
                 raise ValueError("Неверный тип платежа. Выберите 1 или 2.")
 
@@ -42,7 +42,8 @@ def mortgage_calculator(real_estate_value, down_payment, term_in_years, bid, pay
             tax_refund_interests = min(overpayment, limit_interests) * 0.13
             total_refund = tax_refund_purchase + tax_refund_interests
 
-            K = 3.33540331196581
+            K = 3.33540331196581 #  коэффициент, показывающий частное между рекомендуемым доходом и месячным доходом
+
             print(f"Сумма кредита: {mortgage_loan_amount:.0f} ₽")
             if payment_type == 1:
                 print(f"Ежемесячный платёж (аннуитет): {annuity_payment:.0f} ₽")
@@ -58,7 +59,6 @@ def mortgage_calculator(real_estate_value, down_payment, term_in_years, bid, pay
             print(f"За покупку жилья: {tax_refund_purchase:.0f} ₽")
             print(f"За уплаченные проценты: {tax_refund_interests:.0f} ₽")
             print(f"Можно вернуть: {total_refund:.0f} ₽")
-            print("\nНажмите клавишу Enter, чтобы продолжить")
 
             return mortgage_loan_amount, total_loan_term, annuity_payment if payment_type == 1 else first_payment, monthly_interest_rate, payment_type
 
